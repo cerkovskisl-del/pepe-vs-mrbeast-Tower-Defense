@@ -5,6 +5,9 @@ const ctx = canvas.getContext("2d");
 const pepeImg = new Image();
 pepeImg.src = 'pepe.png';
 
+const pepeUpgradeImg = new Image();
+pepeUpgradeImg.src = 'pepe_upgrade.png'; // JAUNAIS UZLABOTĀ PEPE ATTĒLS
+
 const beastImg = new Image();
 beastImg.src = 'mrbeast.png';
 
@@ -17,6 +20,7 @@ let towers = [];
 let enemies = [];
 let projectiles = [];
 let placingTower = false;
+let selectedTower = null; // Tornis, uz kura pašlaik ir uzklikšķināts
 
 let enemiesToSpawn = 0; 
 let spawnTimer = 0;     
@@ -31,7 +35,7 @@ const path = [
   { x: 600, y: 300 }
 ];
 
-const PATH_WIDTH = 30; // Ceļa platums, ko izmantosim pārbaudei
+const PATH_WIDTH = 30; 
 
 function updateUI() {
   document.getElementById("money").innerText = money;
@@ -39,9 +43,8 @@ function updateUI() {
   document.getElementById("level").innerText = currentLevel;
 }
 
-// FUNKCIJAS PĀRBAUDĒM (UZ CEĻA UN TUVUMĀ)
+// PĀRBAUDES FUNKCIJAS
 
-// Aprēķina attālumu no punkta līdz nogrieznim (ceļa posmam)
 function getDistanceToSegment(p, v, w) {
   let l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
   if (l2 === 0) return Math.sqrt(Math.pow(p.x - v.x, 2) + Math.pow(p.y - v.y, 2));
@@ -50,20 +53,18 @@ function getDistanceToSegment(p, v, w) {
   return Math.sqrt(Math.pow(p.x - (v.x + t * (w.x - v.x)), 2) + Math.pow(p.y - (v.y + t * (w.y - v.y)), 2));
 }
 
-// Pārbauda, vai klikšķis ir uz ceļa
 function isClickOnPath(x, y) {
   for (let i = 0; i < path.length - 1; i++) {
     let dist = getDistanceToSegment({x: x, y: y}, path[i], path[i+1]);
-    if (dist < (PATH_WIDTH / 2) + 15) { // 15 ir papildu buferis, lai neuzliktu par tuvu malai
+    if (dist < (PATH_WIDTH / 2) + 15) {
       return true;
     }
   }
   return false;
 }
 
-// Pārbauda, vai klikšķis ir pārāk tuvu citam tornim
 function isTooCloseToOtherTower(x, y) {
-  const MIN_DISTANCE = 35; // Minimālais attālums starp torņu centriem
+  const MIN_DISTANCE = 35;
   for (let t of towers) {
     let dx = t.x - x;
     let dy = t.y - y;
@@ -118,10 +119,19 @@ class Tower {
   constructor(x, y) {
     this.x = x;
     this.y = y;
+    this.lvl = 1; // 1 = Parastais Pepe, 2 = Uzlabotais Pepe
     this.range = 100;
-    this.fireRate = 30; 
+    this.fireRate = 30; // Šaušanas ātrums (mazāks skaitlis = šauj ātrāk)
     this.cooldown = 0;
     this.size = 36;
+    this.damage = 10;
+  }
+
+  upgrade() {
+    this.lvl = 2;
+    this.damage = 25;      // Lielāks damage
+    this.fireRate = 15;    // Divreiz ātrāks attack speed (šauj ik pēc 15 kadriem)
+    this.range = 130;      // Lielāks rādiuss
   }
 
   update() {
@@ -142,28 +152,34 @@ class Tower {
     }
 
     if (target && this.cooldown === 0) {
-      projectiles.push(new Projectile(this.x, this.y, target));
+      // Nododam torņa damage šāviņam
+      projectiles.push(new Projectile(this.x, this.y, target, this.damage));
       this.cooldown = this.fireRate;
     }
   }
 
   draw() {
-    ctx.strokeStyle = "rgba(46, 204, 113, 0.15)";
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
-    ctx.stroke();
+    // Parāda rādiusu tikai izvēlētajam tornim
+    if (selectedTower === this || placingTower) {
+      ctx.strokeStyle = this.lvl === 1 ? "rgba(46, 204, 113, 0.3)" : "rgba(241, 196, 15, 0.3)";
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
-    ctx.drawImage(pepeImg, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+    // Izvēlas pareizo modeli (attēlu) atkarībā no līmeņa
+    let imgToDraw = this.lvl === 1 ? pepeImg : pepeUpgradeImg;
+    ctx.drawImage(imgToDraw, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
   }
 }
 
 class Projectile {
-  constructor(x, y, target) {
+  constructor(x, y, target, damage) {
     this.x = x;
     this.y = y;
     this.target = target;
-    this.speed = 5;
-    this.damage = 10;
+    this.speed = 6;
+    this.damage = damage;
   }
 
   update() {
@@ -182,9 +198,9 @@ class Projectile {
   }
 
   draw() {
-    ctx.fillStyle = "#f1c40f"; 
+    ctx.fillStyle = this.damage > 10 ? "#e67e22" : "#f1c40f"; // Uzlabotie šauj oranžas lodes
     ctx.beginPath();
-    ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -194,6 +210,7 @@ class Projectile {
 document.getElementById("buyPepe").addEventListener("click", () => {
   if (money >= 50) {
     placingTower = true;
+    closeUpgradeMenu();
   }
 });
 
@@ -205,28 +222,76 @@ document.getElementById("nextLevel").addEventListener("click", () => {
   }
 });
 
+// Klikšķu loģika uz canvas (torņa likšana VAI uzlabošana)
 canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
   if (placingTower) {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    if (isClickOnPath(x, y)) { alert("Nevar likt uz ceļa!"); return; }
+    if (isTooCloseToOtherTower(x, y)) { alert("Pārāk tuvu citam tornim!"); return; }
 
-    // JAUNĀS PĀRBAUDES PIRMS NOVIETOŠANAS
-    if (isClickOnPath(x, y)) {
-      alert("Nedarbojas! Tu nevari likt Pepe torni uz ceļa!");
-      return;
-    }
-
-    if (isTooCloseToOtherTower(x, y)) {
-      alert("Pārāk tuvu! Tev jāatstāj vieta starp Pepe torņiem!");
-      return;
-    }
-
-    // Ja abas pārbaudes izietas, novieto torni
     towers.push(new Tower(x, y));
     money -= 50;
     placingTower = false;
     updateUI();
+  } else {
+    // Pārbauda, vai uzklikšķināja uz jau esoša Pepe torņa
+    let foundTower = null;
+    for (let t of towers) {
+      let dx = t.x - x;
+      let dy = t.y - y;
+      if (Math.sqrt(dx*dx + dy*dy) < 20) {
+        foundTower = t;
+        break;
+      }
+    }
+
+    if (foundTower) {
+      selectedTower = foundTower;
+      openUpgradeMenu(x, y);
+    } else {
+      closeUpgradeMenu();
+    }
+  }
+});
+
+// UPGRADE LOGA FUNKCIJAS
+const menu = document.getElementById("upgradeMenu");
+
+function openUpgradeMenu(x, y) {
+  menu.style.display = "block";
+  // Novieto logu tieši virs torņa
+  menu.style.left = (x - 60) + "px";
+  menu.style.top = (y - 110) + "px";
+
+  if (selectedTower.lvl === 1) {
+    document.getElementById("upgradeStats").innerText = "Dmg: 10 ➔ 25 | Ātrums: x2";
+    document.getElementById("upgradeBtn").innerText = "Uzlabot ($75)";
+    document.getElementById("upgradeBtn").disabled = false;
+  } else {
+    document.getElementById("upgradeStats").innerText = "Maksimālais līmenis sasniegts!";
+    document.getElementById("upgradeBtn").innerText = "Max Lvl";
+    document.getElementById("upgradeBtn").disabled = true;
+  }
+}
+
+function closeUpgradeMenu() {
+  menu.style.display = "none";
+  selectedTower = null;
+}
+
+document.getElementById("closeBtn").addEventListener("click", closeUpgradeMenu);
+
+document.getElementById("upgradeBtn").addEventListener("click", () => {
+  if (selectedTower && selectedTower.lvl === 1 && money >= 75) {
+    money -= 75;
+    selectedTower.upgrade();
+    updateUI();
+    closeUpgradeMenu();
+  } else if (money < 75) {
+    alert("Tev nepietiek naudas uzlabojumam!");
   }
 });
 
