@@ -18,10 +18,9 @@ let enemies = [];
 let projectiles = [];
 let placingTower = false;
 
-// Mainīgie līmeņu kontrolei
-let enemiesToSpawn = 0; // Cik pretinieku vēl jārada šajā līmenī
-let spawnTimer = 0;     // Laiks starp pretinieku rašanos
-let levelActive = false; // Vai līmenis pašlaik notiek
+let enemiesToSpawn = 0; 
+let spawnTimer = 0;     
+let levelActive = false; 
 
 const path = [
   { x: 0, y: 200 },
@@ -32,10 +31,48 @@ const path = [
   { x: 600, y: 300 }
 ];
 
+const PATH_WIDTH = 30; // Ceļa platums, ko izmantosim pārbaudei
+
 function updateUI() {
   document.getElementById("money").innerText = money;
   document.getElementById("lives").innerText = lives;
   document.getElementById("level").innerText = currentLevel;
+}
+
+// FUNKCIJAS PĀRBAUDĒM (UZ CEĻA UN TUVUMĀ)
+
+// Aprēķina attālumu no punkta līdz nogrieznim (ceļa posmam)
+function getDistanceToSegment(p, v, w) {
+  let l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
+  if (l2 === 0) return Math.sqrt(Math.pow(p.x - v.x, 2) + Math.pow(p.y - v.y, 2));
+  let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.sqrt(Math.pow(p.x - (v.x + t * (w.x - v.x)), 2) + Math.pow(p.y - (v.y + t * (w.y - v.y)), 2));
+}
+
+// Pārbauda, vai klikšķis ir uz ceļa
+function isClickOnPath(x, y) {
+  for (let i = 0; i < path.length - 1; i++) {
+    let dist = getDistanceToSegment({x: x, y: y}, path[i], path[i+1]);
+    if (dist < (PATH_WIDTH / 2) + 15) { // 15 ir papildu buferis, lai neuzliktu par tuvu malai
+      return true;
+    }
+  }
+  return false;
+}
+
+// Pārbauda, vai klikšķis ir pārāk tuvu citam tornim
+function isTooCloseToOtherTower(x, y) {
+  const MIN_DISTANCE = 35; // Minimālais attālums starp torņu centriem
+  for (let t of towers) {
+    let dx = t.x - x;
+    let dy = t.y - y;
+    let dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < MIN_DISTANCE) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // KLASES
@@ -44,8 +81,8 @@ class Enemy {
   constructor(level) {
     this.x = path[0].x;
     this.y = path[0].y;
-    this.speed = 1.5 + (level * 0.1); // Ar katru līmeni nedaudz ātrāki
-    this.maxHp = 20 + (level * 15);   // Ar katru līmeni par +15 vairāk HP
+    this.speed = 1.5 + (level * 0.1); 
+    this.maxHp = 20 + (level * 15);   
     this.hp = this.maxHp;
     this.waypointIndex = 0;
     this.size = 32;
@@ -70,7 +107,6 @@ class Enemy {
   draw() {
     ctx.drawImage(beastImg, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
 
-    // HP josla
     ctx.fillStyle = "red";
     ctx.fillRect(this.x - 15, this.y - 25, 30, 4);
     ctx.fillStyle = "green";
@@ -161,13 +197,11 @@ document.getElementById("buyPepe").addEventListener("click", () => {
   }
 });
 
-// Jaunā funkcija līmeņa sākšanai
 document.getElementById("nextLevel").addEventListener("click", () => {
   if (!levelActive) {
     levelActive = true;
-    // Aprēķina pretinieku skaitu šim līmenim (piemēram: 1. līmenī 5 pretinieki, 2. līmenī 10 utt.)
     enemiesToSpawn = 5 + (currentLevel * 3); 
-    document.getElementById("nextLevel").disabled = true; // Izslēdz pogu līmeņa laikā
+    document.getElementById("nextLevel").disabled = true;
   }
 });
 
@@ -177,6 +211,18 @@ canvas.addEventListener("click", (e) => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
+    // JAUNĀS PĀRBAUDES PIRMS NOVIETOŠANAS
+    if (isClickOnPath(x, y)) {
+      alert("Nedarbojas! Tu nevari likt Pepe torni uz ceļa!");
+      return;
+    }
+
+    if (isTooCloseToOtherTower(x, y)) {
+      alert("Pārāk tuvu! Tev jāatstāj vieta starp Pepe torņiem!");
+      return;
+    }
+
+    // Ja abas pārbaudes izietas, novieto torni
     towers.push(new Tower(x, y));
     money -= 50;
     placingTower = false;
@@ -188,7 +234,7 @@ canvas.addEventListener("click", (e) => {
 
 function drawPath() {
   ctx.strokeStyle = "#7f8c8d";
-  ctx.lineWidth = 30;
+  ctx.lineWidth = PATH_WIDTH;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.beginPath();
@@ -204,26 +250,23 @@ function gameLoop() {
 
   drawPath();
 
-  // Pretinieku radīšanas loģika līmeņa laikā
   if (levelActive && enemiesToSpawn > 0) {
     spawnTimer++;
-    if (spawnTimer >= 40) { // Jauns MrBeast parādās ik pēc 40 kadriem
+    if (spawnTimer >= 40) { 
       enemies.push(new Enemy(currentLevel));
       enemiesToSpawn--;
       spawnTimer = 0;
     }
   }
 
-  // Pārbauda, vai līmenis ir pabeigts (visi pretinieki radīti un visi ir pieveikti)
   if (levelActive && enemiesToSpawn === 0 && enemies.length === 0) {
     levelActive = false;
-    currentLevel++; // Palielina līmeni nākamajai reizei
-    money += 50;    // Bonusa nauda par līmeņa iziešanu
-    document.getElementById("nextLevel").disabled = false; // Atkal ieslēdz pogu
+    currentLevel++; 
+    money += 50;    
+    document.getElementById("nextLevel").disabled = false; 
     updateUI();
   }
 
-  // Kustība un zīmēšana
   for (let i = enemies.length - 1; i >= 0; i--) {
     let e = enemies[i];
     e.update();
@@ -274,5 +317,4 @@ function gameLoop() {
   }
 }
 
-// Sāk spēli
 gameLoop();
