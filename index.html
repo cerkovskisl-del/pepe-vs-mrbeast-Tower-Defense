@@ -14,6 +14,7 @@
       justify-content: center;
       margin: 0;
       height: 100vh;
+      position: relative;
     }
 
     h1 {
@@ -23,6 +24,10 @@
     #UI {
       margin-bottom: 15px;
       font-size: 20px;
+    }
+
+    #canvasContainer {
+      position: relative;
     }
 
     canvas {
@@ -53,17 +58,28 @@
       background-color: #45a049;
     }
 
-    #nextLevel {
-      background-color: #008CBA;
+    #nextLevel { background-color: #008CBA; }
+    #nextLevel:hover { background-color: #007B9A; }
+    button:active { transform: scale(0.95); }
+
+    /* UPGRADE LOGA STILS */
+    #upgradeMenu {
+      display: none; /* Sākumā paslēpts */
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.9);
+      border: 2px solid #f1c40f;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      z-index: 10;
     }
 
-    #nextLevel:hover {
-      background-color: #007B9A;
-    }
-
-    button:active {
-      transform: scale(0.95);
-    }
+    #upgradeMenu h4 { margin: 0 0 10px 0; color: #f1c40f; }
+    #upgradeBtn { background-color: #e67e22; margin-right: 5px; }
+    #upgradeBtn:hover { background-color: #d35400; }
+    #closeBtn { background-color: #95a5a6; }
+    #closeBtn:hover { background-color: #7f8c8d; }
   </style>
 </head>
 <body>
@@ -75,7 +91,16 @@
     Dzīvības: <span id="lives">10</span>
   </div>
   
-  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <div id="canvasContainer">
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    
+    <div id="upgradeMenu">
+      <h4>Pepe Uzlabošana</h4>
+      <p id="upgradeStats">Damage: 10 -> 25</p>
+      <button id="upgradeBtn">Uzlabot ($75)</button>
+      <button id="closeBtn">X</button>
+    </div>
+  </div>
 
   <div class="controls">
     <button id="buyPepe">Pirkt Pepe Torni ($50)</button>
