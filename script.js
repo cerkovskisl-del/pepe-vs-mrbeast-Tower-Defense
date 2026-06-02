@@ -6,7 +6,7 @@ const pepeImg = new Image();
 pepeImg.src = 'pepe.png';
 
 const pepeUpgradeImg = new Image();
-pepeUpgradeImg.src = 'pepe_upgrade.png'; // JAUNAIS UZLABOTĀ PEPE ATTĒLS
+pepeUpgradeImg.src = 'pepe_upgrade.png'; 
 
 const beastImg = new Image();
 beastImg.src = 'mrbeast.png';
@@ -20,7 +20,7 @@ let towers = [];
 let enemies = [];
 let projectiles = [];
 let placingTower = false;
-let selectedTower = null; // Tornis, uz kura pašlaik ir uzklikšķināts
+let selectedTower = null; 
 
 let enemiesToSpawn = 0; 
 let spawnTimer = 0;     
@@ -119,19 +119,19 @@ class Tower {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.lvl = 1; // 1 = Parastais Pepe, 2 = Uzlabotais Pepe
+    this.lvl = 1; 
     this.range = 100;
-    this.fireRate = 30; // Šaušanas ātrums (mazāks skaitlis = šauj ātrāk)
+    this.fireRate = 30; 
     this.cooldown = 0;
-    this.size = 36;
+    this.size = 36; // Parastā Pepe izmērs
     this.damage = 10;
   }
 
   upgrade() {
     this.lvl = 2;
-    this.damage = 25;      // Lielāks damage
-    this.fireRate = 15;    // Divreiz ātrāks attack speed (šauj ik pēc 15 kadriem)
-    this.range = 130;      // Lielāks rādiuss
+    this.damage = 25;      
+    this.fireRate = 15;    
+    this.range = 130;      
   }
 
   update() {
@@ -152,14 +152,12 @@ class Tower {
     }
 
     if (target && this.cooldown === 0) {
-      // Nododam torņa damage šāviņam
       projectiles.push(new Projectile(this.x, this.y, target, this.damage));
       this.cooldown = this.fireRate;
     }
   }
 
   draw() {
-    // Parāda rādiusu tikai izvēlētajam tornim
     if (selectedTower === this || placingTower) {
       ctx.strokeStyle = this.lvl === 1 ? "rgba(46, 204, 113, 0.3)" : "rgba(241, 196, 15, 0.3)";
       ctx.beginPath();
@@ -167,9 +165,11 @@ class Tower {
       ctx.stroke();
     }
 
-    // Izvēlas pareizo modeli (attēlu) atkarībā no līmeņa
+    // IZMAIŅA ŠEIT: Ja līmenis ir 2, zīmējam bildei dubultu izmēru (72), lai tā nebūtu maza
+    let currentSize = this.lvl === 1 ? this.size : this.size * 2;
     let imgToDraw = this.lvl === 1 ? pepeImg : pepeUpgradeImg;
-    ctx.drawImage(imgToDraw, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+    
+    ctx.drawImage(imgToDraw, this.x - currentSize / 2, this.y - currentSize / 2, currentSize, currentSize);
   }
 }
 
@@ -198,7 +198,7 @@ class Projectile {
   }
 
   draw() {
-    ctx.fillStyle = this.damage > 10 ? "#e67e22" : "#f1c40f"; // Uzlabotie šauj oranžas lodes
+    ctx.fillStyle = this.damage > 10 ? "#e67e22" : "#f1c40f"; 
     ctx.beginPath();
     ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
     ctx.fill();
@@ -222,7 +222,6 @@ document.getElementById("nextLevel").addEventListener("click", () => {
   }
 });
 
-// Klikšķu loģika uz canvas (torņa likšana VAI uzlabošana)
 canvas.addEventListener("click", (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
@@ -237,7 +236,6 @@ canvas.addEventListener("click", (e) => {
     placingTower = false;
     updateUI();
   } else {
-    // Pārbauda, vai uzklikšķināja uz jau esoša Pepe torņa
     let foundTower = null;
     for (let t of towers) {
       let dx = t.x - x;
@@ -257,12 +255,10 @@ canvas.addEventListener("click", (e) => {
   }
 });
 
-// UPGRADE LOGA FUNKCIJAS
 const menu = document.getElementById("upgradeMenu");
 
 function openUpgradeMenu(x, y) {
   menu.style.display = "block";
-  // Novieto logu tieši virs torņa
   menu.style.left = (x - 60) + "px";
   menu.style.top = (y - 110) + "px";
 
