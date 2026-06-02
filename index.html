@@ -34,6 +34,8 @@
 
     .controls {
       margin-top: 15px;
+      display: flex;
+      gap: 15px;
     }
 
     button {
@@ -51,6 +53,14 @@
       background-color: #45a049;
     }
 
+    #nextLevel {
+      background-color: #008CBA;
+    }
+
+    #nextLevel:hover {
+      background-color: #007B9A;
+    }
+
     button:active {
       transform: scale(0.95);
     }
@@ -59,12 +69,17 @@
 <body>
 
   <h1>Pepe vs MrBeast: TD</h1>
-  <div id="UI">Nauda: $<span id="money">100</span> | Dzīvības: <span id="lives">10</span></div>
+  <div id="UI">
+    Līmenis: <span id="level">1</span> | 
+    Nauda: $<span id="money">100</span> | 
+    Dzīvības: <span id="lives">10</span>
+  </div>
   
   <canvas id="gameCanvas" width="600" height="400"></canvas>
 
   <div class="controls">
     <button id="buyPepe">Pirkt Pepe Torni ($50)</button>
+    <button id="nextLevel">Sākt nākamo līmeni</button>
   </div>
 
   <script src="script.js"></script>
