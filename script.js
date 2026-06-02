@@ -11,12 +11,18 @@ beastImg.src = 'mrbeast.png';
 // Spēles resursi
 let money = 100;
 let lives = 10;
+let currentLevel = 1;
+
 let towers = [];
 let enemies = [];
 let projectiles = [];
 let placingTower = false;
 
-// Ceļa punkti (Waypoints), pa kuriem skries MrBeast pretinieki
+// Mainīgie līmeņu kontrolei
+let enemiesToSpawn = 0; // Cik pretinieku vēl jārada šajā līmenī
+let spawnTimer = 0;     // Laiks starp pretinieku rašanos
+let levelActive = false; // Vai līmenis pašlaik notiek
+
 const path = [
   { x: 0, y: 200 },
   { x: 200, y: 200 },
@@ -26,24 +32,23 @@ const path = [
   { x: 600, y: 300 }
 ];
 
-// Atjauno tekstu ekrānā
 function updateUI() {
   document.getElementById("money").innerText = money;
   document.getElementById("lives").innerText = lives;
+  document.getElementById("level").innerText = currentLevel;
 }
 
 // KLASES
 
-// Pretinieks: MrBeast
 class Enemy {
-  constructor() {
+  constructor(level) {
     this.x = path[0].x;
     this.y = path[0].y;
-    this.speed = 1.5;
-    this.hp = 30;
-    this.maxHp = 30;
+    this.speed = 1.5 + (level * 0.1); // Ar katru līmeni nedaudz ātrāki
+    this.maxHp = 20 + (level * 15);   // Ar katru līmeni par +15 vairāk HP
+    this.hp = this.maxHp;
     this.waypointIndex = 0;
-    this.size = 32; // Attēla izmērs (platums un augstums pikseļos)
+    this.size = 32;
   }
 
   update() {
@@ -63,10 +68,9 @@ class Enemy {
   }
 
   draw() {
-    // Zīmē MrBeast attēlu (centrētu uz x un y)
     ctx.drawImage(beastImg, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
 
-    // Dzīvību josla virs attēla
+    // HP josla
     ctx.fillStyle = "red";
     ctx.fillRect(this.x - 15, this.y - 25, 30, 4);
     ctx.fillStyle = "green";
@@ -74,7 +78,6 @@ class Enemy {
   }
 }
 
-// Tornis: Pepe varde
 class Tower {
   constructor(x, y) {
     this.x = x;
@@ -82,7 +85,7 @@ class Tower {
     this.range = 100;
     this.fireRate = 30; 
     this.cooldown = 0;
-    this.size = 36; // Pepe attēla izmērs pikseļos
+    this.size = 36;
   }
 
   update() {
@@ -109,18 +112,15 @@ class Tower {
   }
 
   draw() {
-    // Parāda darbības rādiusu (gaiši zaļu apli)
     ctx.strokeStyle = "rgba(46, 204, 113, 0.15)";
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Zīmē Pepe attēlu (centrētu)
     ctx.drawImage(pepeImg, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
   }
 }
 
-// Šāviņš
 class Projectile {
   constructor(x, y, target) {
     this.x = x;
@@ -146,7 +146,7 @@ class Projectile {
   }
 
   draw() {
-    ctx.fillStyle = "#f1c40f"; // Mazas dzeltenas bumbiņas kā šāviņi
+    ctx.fillStyle = "#f1c40f"; 
     ctx.beginPath();
     ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
     ctx.fill();
@@ -158,6 +158,16 @@ class Projectile {
 document.getElementById("buyPepe").addEventListener("click", () => {
   if (money >= 50) {
     placingTower = true;
+  }
+});
+
+// Jaunā funkcija līmeņa sākšanai
+document.getElementById("nextLevel").addEventListener("click", () => {
+  if (!levelActive) {
+    levelActive = true;
+    // Aprēķina pretinieku skaitu šim līmenim (piemēram: 1. līmenī 5 pretinieki, 2. līmenī 10 utt.)
+    enemiesToSpawn = 5 + (currentLevel * 3); 
+    document.getElementById("nextLevel").disabled = true; // Izslēdz pogu līmeņa laikā
   }
 });
 
@@ -174,7 +184,7 @@ canvas.addEventListener("click", (e) => {
   }
 });
 
-// SPĒLES CIKLS (Game Loop)
+// SPĒLES CIKLS
 
 function drawPath() {
   ctx.strokeStyle = "#7f8c8d";
@@ -194,10 +204,26 @@ function gameLoop() {
 
   drawPath();
 
-  if (Math.random() < 0.015 && lives > 0) {
-    enemies.push(new Enemy());
+  // Pretinieku radīšanas loģika līmeņa laikā
+  if (levelActive && enemiesToSpawn > 0) {
+    spawnTimer++;
+    if (spawnTimer >= 40) { // Jauns MrBeast parādās ik pēc 40 kadriem
+      enemies.push(new Enemy(currentLevel));
+      enemiesToSpawn--;
+      spawnTimer = 0;
+    }
   }
 
+  // Pārbauda, vai līmenis ir pabeigts (visi pretinieki radīti un visi ir pieveikti)
+  if (levelActive && enemiesToSpawn === 0 && enemies.length === 0) {
+    levelActive = false;
+    currentLevel++; // Palielina līmeni nākamajai reizei
+    money += 50;    // Bonusa nauda par līmeņa iziešanu
+    document.getElementById("nextLevel").disabled = false; // Atkal ieslēdz pogu
+    updateUI();
+  }
+
+  // Kustība un zīmēšana
   for (let i = enemies.length - 1; i >= 0; i--) {
     let e = enemies[i];
     e.update();
