@@ -128,7 +128,7 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px rgba(241, 196, 15, 0.2);
       z-index: 10;
       backdrop-filter: blur(5px);
-      min-width: 180px;
+      min-width: 200px;
       animation: popIn 0.15s ease-out;
     }
 
@@ -138,7 +138,9 @@
     }
 
     #upgradeMenu h4 { margin: 0 0 6px 0; color: #f1c40f; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; }
-    #upgradeStats { margin: 0 0 12px 0; font-size: 12px; color: #ccc; font-weight: 500; }
+    
+    /* Pievienots white-space, lai jaunie Diamond teksti glīti pārnestos rindās */
+    #upgradeStats { margin: 0 0 12px 0; font-size: 12px; color: #ccc; font-weight: 500; min-height: 34px; white-space: pre-line; }
     
     .menu-buttons { display: flex; gap: 10px; justify-content: center; }
     #upgradeBtn { background: linear-gradient(135deg, #f39c12 0%, #d35400 100%); box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3); padding: 10px 15px; font-size: 13px; }
@@ -159,8 +161,8 @@
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     
     <div id="upgradeMenu">
-      <h4>Upgrade Pepe</h4>
-      <p id="upgradeStats">Dmg: 10 -> 26</p>
+      <h4 id="menuTitle">Upgrade Pepe</h4>
+      <div id="upgradeStats">Dmg: 10 -> 26</div>
       <div class="menu-buttons">
         <button id="upgradeBtn">Upgrade</button>
         <button id="closeBtn">X</button>
