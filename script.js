@@ -1,12 +1,12 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// ATTĒLU IELĀDE
+// IMAGE LOADING
 const pepeImg = new Image(); pepeImg.src = 'pepe.png';
 const pepeUpgradeImg = new Image(); pepeUpgradeImg.src = 'pepe_upgrade.png'; 
 const beastImg = new Image(); beastImg.src = 'mrbeast.png';
 
-// Spēles galvenie mainīgie
+// Main Game Variables
 let money = 120; 
 let lives = 10;
 let currentLevel = 1;
@@ -14,8 +14,8 @@ let currentLevel = 1;
 let towers = [];
 let enemies = [];
 let lasers = []; 
-let particles = [];      // JAUNUMS: Daļiņu sprādzieni
-let floatingTexts = [];  // JAUNUMS: Peldošie teksti (+$, -dzīvības)
+let particles = [];      
+let floatingTexts = [];  
 
 let placingTower = false;
 let selectedTower = null; 
@@ -23,13 +23,13 @@ let selectedTower = null;
 let enemiesToSpawn = 0; 
 let spawnTimer = 0;     
 let levelActive = false; 
-let spawnedInWave = 0;   // Seko līdzi tekošā viļņa izlaisto pretinieku skaitam
+let spawnedInWave = 0;   
 
-// Pirksta vai peles pozīcija "ēnas" zīmēšanai
+// Mouse or touch positions for placement ghost
 let mouseX = 0;
 let mouseY = 0;
 
-// PAPLAŠINĀTAIS CEĻŠ PRIEKŠ 800x600 LOGA
+// EXTENDED PATH FOR 800x600 WINDOW
 const path = [
   { x: 0, y: 300 },
   { x: 250, y: 300 },
@@ -47,7 +47,7 @@ function updateUI() {
   document.getElementById("level").innerText = currentLevel;
 }
 
-// SAGLABĀŠANAS UN IELĀDES FUNKCIJAS (localStorage)
+// SAVE & LOAD FUNCTIONS (localStorage)
 function saveGame() {
   const gameState = {
     money: money,
@@ -78,7 +78,7 @@ function loadGame() {
   updateUI();
 }
 
-// KOORDINĀTU PRECIZĒŠANA (Telefoniem + Pelei)
+// COORDINATE ACCURACY FOR MOBILE & MOUSE
 function getCanvasTouchPos(e) {
   const rect = canvas.getBoundingClientRect();
   const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
@@ -90,7 +90,7 @@ function getCanvasTouchPos(e) {
   };
 }
 
-// VIZUĀLO EFEKTU GENERATORI
+// VISUAL EFFECT GENERATORS
 function spawnExplosion(x, y, color) {
   for (let i = 0; i < 15; i++) {
     particles.push({
@@ -112,11 +112,12 @@ function createFloatingText(text, x, y, color) {
     x: x,
     y: y,
     alpha: 1,
-    vy: -0.8
+    vy: -0.8,
+    color: color
   });
 }
 
-// LOGISKĀS ĢEOMETRIJAS PĀRBAUDES
+// GEOMETRIC DETECTIONS
 function getDistanceToSegment(p, v, w) {
   let l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
   if (l2 === 0) return Math.sqrt(Math.pow(p.x - v.x, 2) + Math.pow(p.y - v.y, 2));
@@ -141,7 +142,7 @@ function isTooCloseToOtherTower(x, y) {
   return false;
 }
 
-// KLASES
+// CLASSES
 
 class Enemy {
   constructor(level, type = "normal") {
@@ -150,24 +151,31 @@ class Enemy {
     this.type = type;
     this.waypointIndex = 0;
     this.hitTimer = 0;
-    this.distanceTraveled = 0; // Kritiski svarīgi viedajai torņu tēmēšanai
+    this.distanceTraveled = 0; 
 
-    // Atkarībā no pretinieka tipa, uzstādām statusus
+    // DIFFICULTY SCALING: Starting from wave 5, stats scale non-linearly
+    let difficultyMultiplier = 1;
+    let speedBonus = 0;
+    if (level >= 5) {
+      difficultyMultiplier = 1 + (level - 4) * 0.35; 
+      speedBonus = (level - 4) * 0.08;
+    }
+
     if (type === "fast") {
-      this.speed = 2.0 + (level * 0.15);
-      this.maxHp = 15 + (level * 10);
+      this.speed = 2.0 + (level * 0.15) + speedBonus;
+      this.maxHp = (15 + (level * 10)) * difficultyMultiplier;
       this.size = 30;
       this.reward = 15;
-      this.hue = "hue-rotate(130deg)"; // Zilgans pretinieks
+      this.hue = "hue-rotate(130deg)"; 
     } else if (type === "boss") {
-      this.speed = 0.8 + (level * 0.05);
-      this.maxHp = 120 + (level * 50);
+      this.speed = 0.8 + (level * 0.04) + (speedBonus * 0.5);
+      this.maxHp = (120 + (level * 60)) * (difficultyMultiplier * 1.2);
       this.size = 52;
-      this.reward = 50;
-      this.hue = "hue-rotate(270deg) brightness(0.8)"; // Violetīgi sarkans Boss
-    } else {
-      this.speed = 1.3 + (level * 0.12);
-      this.maxHp = 25 + (level * 18);
+      this.reward = 60; 
+      this.hue = "hue-rotate(270deg) brightness(0.8)"; 
+    } else { // Normal MrBeast
+      this.speed = 1.3 + (level * 0.12) + speedBonus;
+      this.maxHp = (25 + (level * 18)) * difficultyMultiplier;
       this.size = 36;
       this.reward = 12;
       this.hue = "none";
@@ -206,7 +214,7 @@ class Enemy {
     ctx.drawImage(beastImg, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
     ctx.restore();
 
-    // HP josla
+    // HP Bar
     let barW = this.size;
     ctx.fillStyle = "rgba(0,0,0,0.5)";
     ctx.fillRect(this.x - barW/2, this.y - this.size/2 - 8, barW, 5);
@@ -242,7 +250,7 @@ class Tower {
     let target = null;
     let maxProgress = -1;
 
-    // VIEDĀ TĒMĒŠANA: Atrod pretinieku, kas ir rādiusā UN ticis vistālāk pa ceļu
+    // SMART TARGETING: Targets the enemy furthest along the path
     for (let enemy of enemies) {
       let dist = Math.sqrt(Math.pow(enemy.x - this.x, 2) + Math.pow(enemy.y - this.y, 2));
       if (dist < this.range && enemy.distanceTraveled > maxProgress) {
@@ -287,9 +295,8 @@ class Tower {
   }
 }
 
-// PASAULES ZĪMĒŠANA
+// MAP DRAWING
 function drawMap() {
-  // Zāle
   ctx.fillStyle = "#1e3d23";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
@@ -299,7 +306,6 @@ function drawMap() {
     ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
   }
 
-  // Zemes ceļa apmale
   ctx.strokeStyle = "#4e3621";
   ctx.lineWidth = PATH_WIDTH + 6;
   ctx.lineCap = "round"; ctx.lineJoin = "round";
@@ -308,7 +314,6 @@ function drawMap() {
   for (let p of path) ctx.lineTo(p.x, p.y);
   ctx.stroke();
 
-  // Ceļš
   ctx.strokeStyle = "#ba9158";
   ctx.lineWidth = PATH_WIDTH;
   ctx.beginPath();
@@ -336,7 +341,7 @@ function drawPlacementGhost() {
   }
 }
 
-// IEVADES APSTRĀDE (Mērogota abām platformām)
+// INPUT MANAGEMENT
 function handleMove(e) {
   const pos = getCanvasTouchPos(e);
   mouseX = pos.x;
@@ -381,7 +386,7 @@ canvas.addEventListener("touchmove", handleMove, { passive: true });
 canvas.addEventListener("click", handleInput);
 canvas.addEventListener("touchstart", handleInput, { passive: false });
 
-// UPGRADE IZVĒLNE
+// UPGRADE MENU
 const menu = document.getElementById("upgradeMenu");
 
 function openUpgradeMenu(e, x, y) {
@@ -395,11 +400,11 @@ function openUpgradeMenu(e, x, y) {
   menu.style.top = (y * (rect.height / canvas.height) - 115) + "px";
 
   if (selectedTower.lvl === 1) {
-    document.getElementById("upgradeStats").innerText = "Dmg: 10➔26 | Ātrums: x2";
-    document.getElementById("upgradeBtn").innerText = "Uzlabot ($75)";
+    document.getElementById("upgradeStats").innerText = "Dmg: 10➔26 | Speed: x2";
+    document.getElementById("upgradeBtn").innerText = "Upgrade ($75)";
     document.getElementById("upgradeBtn").disabled = false;
   } else {
-    document.getElementById("upgradeStats").innerText = "Max Līmenis!";
+    document.getElementById("upgradeStats").innerText = "Max Level Reached!";
     document.getElementById("upgradeBtn").innerText = "Max Lvl";
     document.getElementById("upgradeBtn").disabled = true;
   }
@@ -444,31 +449,34 @@ function nextLevelAction() {
   if (!levelActive) {
     levelActive = true;
     spawnedInWave = 0;
-    enemiesToSpawn = 6 + (currentLevel * 3); 
+    let extraEnemies = currentLevel >= 5 ? (currentLevel - 4) * 2 : 0;
+    enemiesToSpawn = 6 + (currentLevel * 3) + extraEnemies; 
     document.getElementById("nextLevel").disabled = true;
   }
 }
 document.getElementById("nextLevel").addEventListener("click", nextLevelAction);
 document.getElementById("nextLevel").addEventListener("touchstart", nextLevelAction);
 
-// SPĒLES GALVENAIS CIKLS
+// MAIN GAME LOOP
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   drawMap();
 
-  // Pretinieku veidošanas loģika (Spawning)
+  // Spawning Logic
   if (levelActive && enemiesToSpawn > 0) {
     spawnTimer++;
-    if (spawnTimer >= 35) { 
+    
+    let spawnDelay = currentLevel >= 5 ? 28 : 35;
+
+    if (spawnTimer >= spawnDelay) { 
       spawnedInWave++;
       let type = "normal";
       
-      // Dinamiska pretinieku dažādība viļņos
       if (currentLevel % 5 === 0 && enemiesToSpawn === 1) {
-        type = "boss"; // Ik pēc 5 līmeņiem viļņa beigās iznāk Boss
+        type = "boss"; 
       } else if (spawnedInWave % 3 === 0) {
-        type = "fast"; // Katrs trešais pretinieks parastā vilnī ir ātrs
+        type = "fast"; 
       }
 
       enemies.push(new Enemy(currentLevel, type));
@@ -477,7 +485,7 @@ function gameLoop() {
     }
   }
 
-  // Viļņa beigu pārbaude
+  // Wave Cleared Check
   if (levelActive && enemiesToSpawn === 0 && enemies.length === 0) {
     levelActive = false;
     currentLevel++; 
@@ -487,39 +495,36 @@ function gameLoop() {
     saveGame(); 
   }
 
-  // Pretinieku cikls
+  // Enemies Processing
   for (let i = enemies.length - 1; i >= 0; i--) {
     let e = enemies[i];
     e.update();
     e.draw();
 
-    // Ja sasniedz galu
     if (e.waypointIndex >= path.length - 1) {
-      let damage = e.type === "boss" ? 3 : 1;
+      let damage = e.type === "boss" ? 4 : 1; 
       lives -= damage;
-      createFloatingText(`-${damage}`, e.x, e.y, "#e74c3c");
+      createFloatingText(`-${damage} HP`, e.x, e.y, "#e74c3c");
       enemies.splice(i, 1);
       updateUI();
       if (lives > 0) saveGame(); 
     }
-    // Ja tiek iznīcināts
     else if (e.hp <= 0) {
       money += e.reward;
       let pColor = e.type === "fast" ? "#3498db" : (e.type === "boss" ? "#9b59b6" : "#f1c40f");
-      spawnExplosion(e.x, e.y, pColor); // Efektīgs sprādziens
-      createFloatingText(`+$${e.reward}`, e.x, e.y, "#f1c40f"); // Peldošais teksts
+      spawnExplosion(e.x, e.y, pColor); 
+      createFloatingText(`+$${e.reward}`, e.x, e.y, "#f1c40f"); 
       enemies.splice(i, 1);
       updateUI();
     }
   }
 
-  // Torņu cikls
   for (let t of towers) {
     t.update();
     t.draw();
   }
 
-  // Lāzeru/Zibeņu zīmēšana
+  // Laser Effects
   for (let i = lasers.length - 1; i >= 0; i--) {
     let l = lasers[i];
     ctx.strokeStyle = l.color;
@@ -528,7 +533,6 @@ function gameLoop() {
     ctx.shadowColor = l.color; 
     
     ctx.beginPath();
-    // JAUNUMS: Zibens zig-zag vibrācijas efekts
     let midX = (l.startX + l.endX) / 2 + (Math.random() - 0.5) * 8;
     let midY = (l.startY + l.endY) / 2 + (Math.random() - 0.5) * 8;
     ctx.moveTo(l.startX, l.startY);
@@ -541,7 +545,7 @@ function gameLoop() {
     if (l.life <= 0) lasers.splice(i, 1);
   }
 
-  // JAUNUMS: Sprādzienu daļiņu apstrāde
+  // Particle Explosions
   for (let i = particles.length - 1; i >= 0; i--) {
     let p = particles[i];
     p.x += p.vx;
@@ -560,7 +564,7 @@ function gameLoop() {
     }
   }
 
-  // JAUNUMS: Peldošo tekstu apstrāde
+  // Floating Texts Processing
   for (let i = floatingTexts.length - 1; i >= 0; i--) {
     let ft = floatingTexts[i];
     ft.y += ft.vy;
@@ -570,7 +574,7 @@ function gameLoop() {
     } else {
       ctx.save();
       ctx.globalAlpha = ft.alpha;
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = ft.color;
       ctx.font = "bold 16px 'Segoe UI'";
       ctx.shadowBlur = 4;
       ctx.shadowColor = "#000000";
@@ -589,11 +593,14 @@ function gameLoop() {
     ctx.fillStyle = "#e74c3c";
     ctx.font = "bold 45px 'Segoe UI'";
     ctx.textAlign = "center";
-    ctx.fillText("SPĒLE BEIGUSIES!", canvas.width / 2, canvas.height / 2);
+    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "20px 'Segoe UI'";
+    ctx.fillText("Refresh the page to try again!", canvas.width / 2, canvas.height / 2 + 30);
     localStorage.removeItem("pepe_td_save"); 
   }
 }
 
-// Ielāde un palaišana
+// Initialization
 loadGame();
 gameLoop();
