@@ -2,8 +2,16 @@
 <html lang="lv">
 <head>
   <meta charset="UTF-8">
-  <title>Pepe vs MrBeast: Ultimate Tower Defense</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pepe vs MrBeast: Mobile Edition</title>
   <style>
+    * {
+      box-sizing: border-box;
+      -webkit-touch-callout: none; /* Noņem teksta izvēli telefonā */
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
     body {
       background-color: #111;
       color: white;
@@ -13,131 +21,131 @@
       align-items: center;
       justify-content: center;
       margin: 0;
-      height: 100vh;
-      overflow: hidden;
+      min-height: 100vh;
+      padding: 10px;
+      overflow-x: hidden;
     }
 
     h1 {
       margin: 0 0 5px 0;
-      font-size: 28px;
+      font-size: 22px;
       text-transform: uppercase;
       letter-spacing: 2px;
       color: #2ecc71;
-      text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+      text-align: center;
     }
 
     #UI {
-      margin-bottom: 15px;
-      font-size: 18px;
+      margin-bottom: 10px;
+      font-size: 15px;
       background: rgba(255, 255, 255, 0.05);
-      padding: 8px 20px;
+      padding: 6px 15px;
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
     }
 
-    #UI span {
-      font-weight: bold;
-      color: #f1c40f;
-    }
+    #UI span { font-weight: bold; color: #f1c40f; }
     #UI #lives { color: #e74c3c; }
     #UI #level { color: #3498db; }
 
     #canvasContainer {
       position: relative;
+      width: 100%;
+      max-width: 800px; /* Maksimālais izmērs kā datorā */
     }
 
     canvas {
-      border: 4px solid #444;
+      background-color: #2b2b2b;
+      border: 3px solid #444;
       border-radius: 8px;
-      box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.7);
+      box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.7);
+      display: block;
+      width: 100%; /* Svarīgi: Telefonā izstiepsies/samazināsies pa visu ekrānu */
+      height: auto; /* Saglabā 800x600 proporciju */
+      touch-action: none; /* Neļauj telefonam ritināt lapu, kad aiztiek spēli */
     }
 
     .controls {
-      margin-top: 15px;
+      margin-top: 10px;
       display: flex;
-      gap: 15px;
+      gap: 10px;
+      width: 100%;
+      max-width: 800px;
     }
 
     button {
+      flex: 1;
       background: linear-gradient(135deg, #2ecc71, #27ae60);
       border: none;
       color: white;
-      padding: 12px 24px;
-      font-size: 16px;
+      padding: 15px 10px; /* Lielākas pogas ērtākam klikšķim telefonā */
+      font-size: 15px;
       font-weight: bold;
       cursor: pointer;
-      border-radius: 6px;
+      border-radius: 8px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-      transition: all 0.2s ease;
+      transition: transform 0.1s;
       text-transform: uppercase;
-    }
-
-    button:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(46, 204, 113, 0.4);
+      text-align: center;
     }
 
     #nextLevel {
       background: linear-gradient(135deg, #3498db, #2980b9);
     }
-    #nextLevel:hover:not(:disabled) {
-      box-shadow: 0 6px 12px rgba(52, 152, 219, 0.4);
-    }
 
     button:disabled {
       background: #444;
       color: #777;
-      cursor: not-allowed;
       box-shadow: none;
-      transform: none;
     }
 
-    button:active:not(:disabled) {
-      transform: translateY(1px);
+    button:active {
+      transform: scale(0.95);
     }
 
-    /* UPGRADE IZVĒLNE */
+    /* MOBILAIS UPGRADE LOGS */
     #upgradeMenu {
       display: none;
       position: absolute;
       background: rgba(20, 20, 20, 0.95);
       border: 2px solid #f1c40f;
-      padding: 15px;
+      padding: 12px;
       border-radius: 8px;
       text-align: center;
       box-shadow: 0 10px 25px rgba(0,0,0,0.8);
       z-index: 10;
       backdrop-filter: blur(4px);
-      min-width: 160px;
+      min-width: 150px;
     }
 
-    #upgradeMenu h4 { margin: 0 0 8px 0; color: #f1c40f; text-transform: uppercase; font-size: 14px; }
-    #upgradeStats { margin: 0 0 12px 0; font-size: 13px; color: #bbb; }
+    #upgradeMenu h4 { margin: 0 0 5px 0; color: #f1c40f; text-transform: uppercase; font-size: 13px; }
+    #upgradeStats { margin: 0 0 10px 0; font-size: 12px; color: #bbb; }
     
     .menu-buttons { display: flex; gap: 8px; justify-content: center; }
-    #upgradeBtn { background: linear-gradient(135deg, #f39c12, #d35400); padding: 8px 14px; font-size: 14px; }
-    #closeBtn { background: #e74c3c; padding: 8px 12px; font-size: 14px; }
-    #closeBtn:hover { background: #c0392b; }
+    #upgradeBtn { background: linear-gradient(135deg, #f39c12, #d35400); padding: 10px 12px; font-size: 13px; }
+    #closeBtn { background: #e74c3c; padding: 10px 14px; font-size: 13px; max-width: 45px; }
   </style>
 </head>
 <body>
 
   <h1>Pepe vs MrBeast: TD</h1>
   <div id="UI">
-    Līmenis: <span id="level">1</span> | 
-    Nauda: $<span id="money">100</span> | 
+    Lvl: <span id="level">1</span> | 
+    Nauda: $<span id="money">120</span> | 
     Dzīvības: <span id="lives">10</span>
   </div>
   
   <div id="canvasContainer">
-    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
     
     <div id="upgradeMenu">
       <h4>Pepe Upgrade</h4>
       <p id="upgradeStats">Dmg: 10 -> 25</p>
       <div class="menu-buttons">
-        <button id="upgradeBtn">Uzlabot ($75)</button>
+        <button id="upgradeBtn">Uzlabot</button>
         <button id="closeBtn">X</button>
       </div>
     </div>
@@ -145,7 +153,7 @@
 
   <div class="controls">
     <button id="buyPepe">Pirkt Pepe ($50)</button>
-    <button id="nextLevel">Sākt Vilni</button>
+    <button id="nextLevel">Sākt</button>
   </div>
 
   <script src="script.js"></script>
