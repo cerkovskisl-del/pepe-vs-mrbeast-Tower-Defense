@@ -7,13 +7,13 @@ const pepeUpgradeImg = new Image(); pepeUpgradeImg.src = 'pepe_upgrade.png';
 const beastImg = new Image(); beastImg.src = 'mrbeast.png';
 
 // Spēles mainīgie
-let money = 120; // Sākumā nedaudz vairāk naudas draudzīgākam startam
+let money = 120; 
 let lives = 10;
 let currentLevel = 1;
 
 let towers = [];
 let enemies = [];
-let lasers = []; // Aizvietojam lodes ar lāzera stariem/zibeņiem
+let lasers = []; 
 let placingTower = false;
 let selectedTower = null; 
 
@@ -21,25 +21,40 @@ let enemiesToSpawn = 0;
 let spawnTimer = 0;     
 let levelActive = false; 
 
-// Peles pozīcija "ēnas" zīmēšanai
+// Pirksta vai peles pozīcija "ēnas" zīmēšanai
 let mouseX = 0;
 let mouseY = 0;
 
+// PAPLAŠINĀTAIS CEĻŠ PRIEKŠ 800x600 LOGA
 const path = [
-  { x: 0, y: 200 },
-  { x: 200, y: 200 },
-  { x: 200, y: 100 },
-  { x: 400, y: 100 },
-  { x: 400, y: 300 },
-  { x: 600, y: 300 }
+  { x: 0, y: 300 },
+  { x: 250, y: 300 },
+  { x: 250, y: 120 },
+  { x: 550, y: 120 },
+  { x: 550, y: 480 },
+  { x: 800, y: 480 }
 ];
 
-const PATH_WIDTH = 34; 
+const PATH_WIDTH = 38; // Platāks ceļš, lai labāk izskatītos uz lielā ekrāna
 
 function updateUI() {
   document.getElementById("money").innerText = money;
   document.getElementById("lives").innerText = lives;
   document.getElementById("level").innerText = currentLevel;
+}
+
+// KOORDINĀTU PRECIZĒŠANAS FUNKCIJA (Svarīga telefoniem)
+// Pārrēķina pieskāriena vietu no ekrāna fiziskā izmēra uz spēles 800x600 pikseļiem
+function getCanvasTouchPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  // Ja tas ir skāriens (touch), ņemam pirmo pirkstu, ja nē — peli
+  const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+  
+  return {
+    x: (clientX - rect.left) * (canvas.width / rect.width),
+    y: (clientY - rect.top) * (canvas.height / rect.height)
+  };
 }
 
 // LOGISKĀS PĀRBAUDES
@@ -61,7 +76,7 @@ function isClickOnPath(x, y) {
 }
 
 function isTooCloseToOtherTower(x, y) {
-  const MIN_DISTANCE = 32;
+  const MIN_DISTANCE = 35;
   for (let t of towers) {
     let dist = Math.sqrt(Math.pow(t.x - x, 2) + Math.pow(t.y - y, 2));
     if (dist < MIN_DISTANCE) return true;
@@ -79,8 +94,8 @@ class Enemy {
     this.maxHp = 25 + (level * 18);   
     this.hp = this.maxHp;
     this.waypointIndex = 0;
-    this.size = 32;
-    this.hitTimer = 0; // Efektam, kad iesit (flash)
+    this.size = 36; // Lielāks tēls priekš 800x600 loga
+    this.hitTimer = 0; 
   }
 
   update() {
@@ -103,7 +118,6 @@ class Enemy {
 
   draw() {
     ctx.save();
-    // Ja nesen saņēma damage, liekam vizuālu spīdumu (Hit flash)
     if (this.hitTimer > 0) {
       ctx.shadowBlur = 15;
       ctx.shadowColor = "#ffffff";
@@ -111,13 +125,13 @@ class Enemy {
     ctx.drawImage(beastImg, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
     ctx.restore();
 
-    // HP Bar dizains
+    // HP josla
     ctx.fillStyle = "rgba(0,0,0,0.5)";
-    ctx.fillRect(this.x - 16, this.y - 24, 32, 5);
+    ctx.fillRect(this.x - 18, this.y - 28, 36, 5);
     ctx.fillStyle = "#e74c3c";
-    ctx.fillRect(this.x - 15, this.y - 23, 30, 3);
+    ctx.fillRect(this.x - 17, this.y - 27, 34, 3);
     ctx.fillStyle = "#2ecc71";
-    ctx.fillRect(this.x - 15, this.y - 23, (this.hp / this.maxHp) * 30, 3);
+    ctx.fillRect(this.x - 17, this.y - 27, (this.hp / this.maxHp) * 34, 3);
   }
 }
 
@@ -126,10 +140,10 @@ class Tower {
     this.x = x;
     this.y = y;
     this.lvl = 1; 
-    this.range = 110;
+    this.range = 125; // Palielināts darbības rādiuss lielākai kartei
     this.fireRate = 25; 
     this.cooldown = 0;
-    this.size = 36; 
+    this.size = 40; 
     this.damage = 10;
   }
 
@@ -137,7 +151,7 @@ class Tower {
     this.lvl = 2;
     this.damage = 25;      
     this.fireRate = 14;    
-    this.range = 145;      
+    this.range = 165;      
   }
 
   update() {
@@ -156,9 +170,8 @@ class Tower {
 
     if (target && this.cooldown === 0) {
       target.hp -= this.damage;
-      target.hitTimer = 5; // Ieslēdz balto spīdumu uz 5 kadriem
+      target.hitTimer = 5; 
       
-      // Pievienojam lāzera staru vizuālajam sarakstam
       lasers.push({
         startX: this.x,
         startY: this.y,
@@ -166,7 +179,7 @@ class Tower {
         endY: target.y,
         color: this.lvl === 1 ? "#f1c40f" : "#e67e22",
         width: this.lvl === 1 ? 2 : 4,
-        life: 6 // Cik ilgi stars redzams ekrānā (kadros)
+        life: 6 
       });
 
       this.cooldown = this.fireRate;
@@ -174,30 +187,27 @@ class Tower {
   }
 
   draw() {
-    // Parāda rādiusu, ja tornis izvēlēts
     if (selectedTower === this) {
       ctx.strokeStyle = this.lvl === 1 ? "rgba(46, 204, 113, 0.25)" : "rgba(241, 196, 15, 0.35)";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
       ctx.stroke();
-      
-      // Viegls rādiusa iekrāsojums
       ctx.fillStyle = this.lvl === 1 ? "rgba(46, 204, 113, 0.03)" : "rgba(241, 196, 15, 0.04)";
       ctx.fill();
     }
 
-    let currentSize = this.lvl === 1 ? this.size : this.size * 2; // Kompensē uzlabotās bildes izmēru
+    let currentSize = this.lvl === 1 ? this.size : this.size * 2; 
     let imgToDraw = this.lvl === 1 ? pepeImg : pepeUpgradeImg;
     
     ctx.drawImage(imgToDraw, this.x - currentSize / 2, this.y - currentSize / 2, currentSize, currentSize);
   }
 }
 
-// INTERFEISS UN PASAULE
+// PASAULES ZĪMĒŠANA
 
 function drawMap() {
-  // 1. Zāles fons ar nelielu tekstūru (līnijām)
+  // Zāle
   ctx.fillStyle = "#1e3d23";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
@@ -207,7 +217,7 @@ function drawMap() {
     ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
   }
 
-  // 2. Ceļa apmale (Tumšāka un platāka)
+  // Zemes ceļa apmale
   ctx.strokeStyle = "#4e3621";
   ctx.lineWidth = PATH_WIDTH + 6;
   ctx.lineCap = "round"; ctx.lineJoin = "round";
@@ -216,7 +226,7 @@ function drawMap() {
   for (let p of path) ctx.lineTo(p.x, p.y);
   ctx.stroke();
 
-  // 3. Pats smilšu ceļš
+  // Ceļš
   ctx.strokeStyle = "#ba9158";
   ctx.lineWidth = PATH_WIDTH;
   ctx.beginPath();
@@ -225,59 +235,43 @@ function drawMap() {
   ctx.stroke();
 }
 
-// Zīmē Pepe "ēnu" pirms tā novietošanas
 function drawPlacementGhost() {
   if (placingTower) {
     let invalid = isClickOnPath(mouseX, mouseY) || isTooCloseToOtherTower(mouseX, mouseY) || money < 50;
     
-    // Rādiusa aplis pirms likšanas
     ctx.strokeStyle = invalid ? "rgba(231, 76, 60, 0.4)" : "rgba(46, 204, 113, 0.4)";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(mouseX, mouseY, 110, 0, Math.PI * 2);
+    ctx.arc(mouseX, mouseY, 125, 0, Math.PI * 2);
     ctx.stroke();
     ctx.fillStyle = invalid ? "rgba(231, 76, 60, 0.05)" : "rgba(46, 204, 113, 0.05)";
     ctx.fill();
 
-    // Caurspīdīgs Pepe tēls
     ctx.save();
     ctx.globalAlpha = 0.5;
-    ctx.drawImage(pepeImg, mouseX - 18, mouseY - 18, 36, 36);
+    ctx.drawImage(pepeImg, mouseX - 20, mouseY - 20, 40, 40);
     ctx.restore();
   }
 }
 
-// NOTIKUMI (Events)
+// IEVADES APSTRĀDE (Pele + Touch)
 
-document.getElementById("buyPepe").addEventListener("click", () => {
-  if (money >= 50) {
-    placingTower = true;
-    closeUpgradeMenu();
-  }
-});
+function handleMove(e) {
+  const pos = getCanvasTouchPos(e);
+  mouseX = pos.x;
+  mouseY = pos.y;
+}
 
-document.getElementById("nextLevel").addEventListener("click", () => {
-  if (!levelActive) {
-    levelActive = true;
-    enemiesToSpawn = 6 + (currentLevel * 3); 
-    document.getElementById("nextLevel").disabled = true;
-  }
-});
-
-// Seko līdzi pelei dēļ "ēnas" efekta
-canvas.addEventListener("mousemove", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  mouseX = e.clientX - rect.left;
-  mouseY = e.clientY - rect.top;
-});
-
-canvas.addEventListener("click", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+function handleInput(e) {
+  // Novērš lapas ritināšanu uz leju/raustīšanos, kad spēlē telefonā
+  if (e.cancelable) e.preventDefault(); 
+  
+  const pos = getCanvasTouchPos(e);
+  const x = pos.x;
+  const y = pos.y;
 
   if (placingTower) {
-    if (isClickOnPath(x, y) || isTooCloseToOtherTower(x, y)) return;
+    if (isClickOnPath(x, y) || isTooCloseToOtherTower(x, y) || money < 50) return;
 
     towers.push(new Tower(x, y));
     money -= 50;
@@ -285,8 +279,9 @@ canvas.addEventListener("click", (e) => {
     updateUI();
   } else {
     let foundTower = null;
+    // Telefoniem palielināts uztveršanas rādiuss līdz 28, lai vieglāk uzspiest ar pirkstu
     for (let t of towers) {
-      if (Math.sqrt(Math.pow(t.x - x, 2) + Math.pow(t.y - y, 2)) < 20) {
+      if (Math.sqrt(Math.pow(t.x - x, 2) + Math.pow(t.y - y, 2)) < 28) {
         foundTower = t;
         break;
       }
@@ -294,19 +289,34 @@ canvas.addEventListener("click", (e) => {
 
     if (foundTower) {
       selectedTower = foundTower;
-      openUpgradeMenu(x, y);
+      openUpgradeMenu(e, x, y);
     } else {
       closeUpgradeMenu();
     }
   }
-});
+}
+
+// Notikumu klausītāji abām platformām
+canvas.addEventListener("mousemove", handleMove);
+canvas.addEventListener("touchmove", handleMove, { passive: true });
+
+canvas.addEventListener("click", handleInput);
+canvas.addEventListener("touchstart", handleInput, { passive: false });
+
+// UPGRADE IZVĒLNE
 
 const menu = document.getElementById("upgradeMenu");
 
-function openUpgradeMenu(x, y) {
+function openUpgradeMenu(e, x, y) {
   menu.style.display = "block";
-  menu.style.left = (x - 80) + "px";
-  menu.style.top = (y - 120) + "px";
+  
+  // Izmantojam fiziskos CSS pikseļus loga pozicionēšanai, lai tas nedeformētos uz mazākiem ekrāniem
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+  const relativeX = clientX - rect.left;
+
+  menu.style.left = (relativeX - 75) + "px";
+  menu.style.top = (y * (rect.height / canvas.height) - 115) + "px";
 
   if (selectedTower.lvl === 1) {
     document.getElementById("upgradeStats").innerText = "Dmg: 10➔25 | Ātrums: x2";
@@ -324,25 +334,53 @@ function closeUpgradeMenu() {
   selectedTower = null;
 }
 
-document.getElementById("closeBtn").addEventListener("click", closeUpgradeMenu);
+// Pieslēdzam pogu darbības abiem režīmiem
+const closeEvents = ["click", "touchstart"];
+closeEvents.forEach(evt => {
+  document.getElementById("closeBtn").addEventListener(evt, (e) => {
+    e.stopPropagation();
+    closeUpgradeMenu();
+  });
+});
 
-document.getElementById("upgradeBtn").addEventListener("click", () => {
+function triggerUpgrade(e) {
+  e.stopPropagation();
   if (selectedTower && selectedTower.lvl === 1 && money >= 75) {
     money -= 75;
     selectedTower.upgrade();
     updateUI();
     closeUpgradeMenu();
   }
-});
+}
+document.getElementById("upgradeBtn").addEventListener("click", triggerUpgrade);
+document.getElementById("upgradeBtn").addEventListener("touchstart", triggerUpgrade);
 
-// GALVENAIS CIKLS (Game Loop)
+function buyPepeAction(e) {
+  if (money >= 50) {
+    placingTower = true;
+    closeUpgradeMenu();
+  }
+}
+document.getElementById("buyPepe").addEventListener("click", buyPepeAction);
+document.getElementById("buyPepe").addEventListener("touchstart", buyPepeAction);
+
+function nextLevelAction() {
+  if (!levelActive) {
+    levelActive = true;
+    enemiesToSpawn = 6 + (currentLevel * 3); 
+    document.getElementById("nextLevel").disabled = true;
+  }
+}
+document.getElementById("nextLevel").addEventListener("click", nextLevelAction);
+document.getElementById("nextLevel").addEventListener("touchstart", nextLevelAction);
+
+// SPĒLES GALVENAIS CIKLS
 
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   drawMap();
 
-  // Spāna kontrole
   if (levelActive && enemiesToSpawn > 0) {
     spawnTimer++;
     if (spawnTimer >= 35) { 
@@ -352,16 +390,14 @@ function gameLoop() {
     }
   }
 
-  // Viļņa beigas
   if (levelActive && enemiesToSpawn === 0 && enemies.length === 0) {
     levelActive = false;
     currentLevel++; 
-    money += 60; // Nedaudz palielināts bonuss    
+    money += 60;     
     document.getElementById("nextLevel").disabled = false; 
     updateUI();
   }
 
-  // Pretinieki
   for (let i = enemies.length - 1; i >= 0; i--) {
     let e = enemies[i];
     e.update();
@@ -373,32 +409,30 @@ function gameLoop() {
       updateUI();
     }
     else if (e.hp <= 0) {
-      money += 12; // Sabalansēta nauda par killiem
+      money += 12; 
       enemies.splice(i, 1);
       updateUI();
     }
   }
 
-  // Torņi
   for (let t of towers) {
     t.update();
     t.draw();
   }
 
-  // ZĪMĒ LĀZERA STARUS (Šaušanas efektus)
   for (let i = lasers.length - 1; i >= 0; i--) {
     let l = lasers[i];
     ctx.strokeStyle = l.color;
     ctx.lineWidth = l.width;
     ctx.shadowBlur = 10;
-    ctx.shadowColor = l.color; // Liek lāzeram spīdēt naktī
+    ctx.shadowColor = l.color; 
     
     ctx.beginPath();
     ctx.moveTo(l.startX, l.startY);
     ctx.lineTo(l.endX, l.endY);
     ctx.stroke();
     
-    ctx.shadowBlur = 0; // Noņemam spīdumu pārējiem elementiem
+    ctx.shadowBlur = 0; 
     l.life--;
     if (l.life <= 0) lasers.splice(i, 1);
   }
@@ -411,12 +445,12 @@ function gameLoop() {
     ctx.fillStyle = "rgba(0,0,0,0.85)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#e74c3c";
-    ctx.font = "bold 40px 'Segoe UI'";
+    ctx.font = "bold 45px 'Segoe UI'";
     ctx.textAlign = "center";
     ctx.fillText("SPĒLE BEIGUSIES!", canvas.width / 2, canvas.height / 2);
   }
 }
 
-// Starts
+// Palaišana
 updateUI();
 gameLoop();
