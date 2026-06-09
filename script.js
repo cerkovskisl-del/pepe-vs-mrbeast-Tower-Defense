@@ -4,6 +4,7 @@ const ctx = canvas.getContext("2d");
 // IMAGE LOADING
 const pepeImg = new Image(); pepeImg.src = 'pepe.png';
 const pepeUpgradeImg = new Image(); pepeUpgradeImg.src = 'pepe_upgrade.png'; 
+const pepeDiamondImg = new Image(); pepeDiamondImg.src = 'pepe_diamond.png'; // NEW: Diamond asset
 const beastImg = new Image(); beastImg.src = 'mrbeast.png';
 
 // Main Game Variables
@@ -73,6 +74,7 @@ function loadGame() {
   for (let savedTower of gameState.towers) {
     let t = new Tower(savedTower.x, savedTower.y);
     if (savedTower.lvl === 2) t.upgrade();
+    if (savedTower.lvl === 3) { t.lvl = 2; t.upgrade(); t.upgradeToDiamond(); } // Handles diamond recovery from save
     towers.push(t);
   }
   updateUI();
@@ -244,13 +246,21 @@ class Tower {
     this.range = 170;      
   }
 
+  // NEW: Diamond Upgrade Stats (Tier 3)
+  upgradeToDiamond() {
+    this.lvl = 3;
+    this.damage = 65;      // High endgame damage
+    this.fireRate = 7;     // Extremely fast speed
+    this.range = 220;      // Huge map radius
+  }
+
   update() {
     if (this.cooldown > 0) this.cooldown--;
 
     let target = null;
     let maxProgress = -1;
 
-    // SMART TARGETING: Targets the enemy furthest along the path
+    // SMART TARGETING
     for (let enemy of enemies) {
       let dist = Math.sqrt(Math.pow(enemy.x - this.x, 2) + Math.pow(enemy.y - this.y, 2));
       if (dist < this.range && enemy.distanceTraveled > maxProgress) {
@@ -263,13 +273,18 @@ class Tower {
       target.hp -= this.damage;
       target.hitTimer = 4; 
       
+      // Dynamic Laser Beam Colors
+      let beamColor = "#f1c40f"; // Level 1 (Yellow)
+      if (this.lvl === 2) beamColor = "#e67e22"; // Level 2 (Orange/Gold)
+      if (this.lvl === 3) beamColor = "#00d2d3"; // Level 3 (Cyan/Diamond)
+
       lasers.push({
         startX: this.x,
         startY: this.y - 6,
         endX: target.x,
         endY: target.y,
-        color: this.lvl === 1 ? "#f1c40f" : "#e67e22",
-        width: this.lvl === 1 ? 2.5 : 4.5,
+        color: beamColor,
+        width: this.lvl === 1 ? 2.5 : (this.lvl === 2 ? 4.5 : 6),
         life: 5 
       });
 
@@ -279,17 +294,19 @@ class Tower {
 
   draw() {
     if (selectedTower === this) {
-      ctx.strokeStyle = this.lvl === 1 ? "rgba(46, 204, 113, 0.25)" : "rgba(241, 196, 15, 0.35)";
+      ctx.strokeStyle = this.lvl === 1 ? "rgba(46, 204, 113, 0.25)" : (this.lvl === 2 ? "rgba(241, 196, 15, 0.35)" : "rgba(0, 210, 211, 0.4)");
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.fillStyle = this.lvl === 1 ? "rgba(46, 204, 113, 0.03)" : "rgba(241, 196, 15, 0.04)";
+      ctx.fillStyle = this.lvl === 1 ? "rgba(46, 204, 113, 0.03)" : (this.lvl === 2 ? "rgba(241, 196, 15, 0.04)" : "rgba(0, 210, 211, 0.05)");
       ctx.fill();
     }
 
-    let currentSize = this.lvl === 1 ? this.size : this.size * 1.8; 
-    let imgToDraw = this.lvl === 1 ? pepeImg : pepeUpgradeImg;
+    let currentSize = this.lvl === 1 ? this.size : (this.lvl === 2 ? this.size * 1.8 : this.size * 2); 
+    let imgToDraw = pepeImg;
+    if (this.lvl === 2) imgToDraw = pepeUpgradeImg;
+    if (this.lvl === 3) imgToDraw = pepeDiamondImg;
     
     ctx.drawImage(imgToDraw, this.x - currentSize / 2, this.y - currentSize / 2, currentSize, currentSize);
   }
@@ -386,7 +403,7 @@ canvas.addEventListener("touchmove", handleMove, { passive: true });
 canvas.addEventListener("click", handleInput);
 canvas.addEventListener("touchstart", handleInput, { passive: false });
 
-// UPGRADE MENU
+// UPGRADE MENU TIER LOGIC
 const menu = document.getElementById("upgradeMenu");
 
 function openUpgradeMenu(e, x, y) {
@@ -400,13 +417,24 @@ function openUpgradeMenu(e, x, y) {
   menu.style.top = (y * (rect.height / canvas.height) - 115) + "px";
 
   if (selectedTower.lvl === 1) {
-    document.getElementById("upgradeStats").innerText = "Dmg: 10➔26 | Speed: x2";
+    document.getElementById("menuTitle").innerText = "Upgrade Pepe";
+    document.getElementById("upgradeStats").innerText = "Dmg: 10 ➔ 26 | Speed: x2\nType: Gold Pepe";
     document.getElementById("upgradeBtn").innerText = "Upgrade ($75)";
     document.getElementById("upgradeBtn").disabled = false;
+    menu.style.borderColor = "#f1c40f";
+  } else if (selectedTower.lvl === 2) {
+    // NEW: Evolve interface option from Gold to Diamond
+    document.getElementById("menuTitle").innerText = "Diamond Evolve";
+    document.getElementById("upgradeStats").innerText = "Dmg: 26 ➔ 65 | Range: +50\nType: Diamond Pepe";
+    document.getElementById("upgradeBtn").innerText = "Evolve ($150)";
+    document.getElementById("upgradeBtn").disabled = false;
+    menu.style.borderColor = "#00d2d3";
   } else {
-    document.getElementById("upgradeStats").innerText = "Max Level Reached!";
-    document.getElementById("upgradeBtn").innerText = "Max Lvl";
+    document.getElementById("menuTitle").innerText = "Max Level";
+    document.getElementById("upgradeStats").innerText = "Diamond tier reached!\nUltimate Form.";
+    document.getElementById("upgradeBtn").innerText = "Maxed";
     document.getElementById("upgradeBtn").disabled = true;
+    menu.style.borderColor = "#ffffff";
   }
 }
 
@@ -425,12 +453,23 @@ closeEvents.forEach(evt => {
 
 function triggerUpgrade(e) {
   e.stopPropagation();
-  if (selectedTower && selectedTower.lvl === 1 && money >= 75) {
-    money -= 75;
-    selectedTower.upgrade();
-    updateUI();
-    closeUpgradeMenu();
-    saveGame(); 
+  if (selectedTower) {
+    // Level 1 -> Level 2 (Gold)
+    if (selectedTower.lvl === 1 && money >= 75) {
+      money -= 75;
+      selectedTower.upgrade();
+      updateUI();
+      closeUpgradeMenu();
+      saveGame(); 
+    } 
+    // NEW: Level 2 -> Level 3 (Diamond)
+    else if (selectedTower.lvl === 2 && money >= 150) {
+      money -= 150;
+      selectedTower.upgradeToDiamond();
+      updateUI();
+      closeUpgradeMenu();
+      saveGame();
+    }
   }
 }
 document.getElementById("upgradeBtn").addEventListener("click", triggerUpgrade);
@@ -524,7 +563,7 @@ function gameLoop() {
     t.draw();
   }
 
-  // Laser Effects
+  // Laser Effects (Endgame Cyan for Diamond tier)
   for (let i = lasers.length - 1; i >= 0; i--) {
     let l = lasers[i];
     ctx.strokeStyle = l.color;
