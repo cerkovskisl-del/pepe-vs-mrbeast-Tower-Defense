@@ -43,11 +43,45 @@ function updateUI() {
   document.getElementById("level").innerText = currentLevel;
 }
 
+// SAGLABĀŠANAS UN IELĀDES FUNKCIJAS (localStorage)
+
+function saveGame() {
+  const gameState = {
+    money: money,
+    lives: lives,
+    currentLevel: currentLevel,
+    towers: towers.map(t => ({ x: t.x, y: t.y, lvl: t.lvl }))
+  };
+  localStorage.setItem("pepe_td_save", JSON.stringify(gameState));
+}
+
+function loadGame() {
+  const savedData = localStorage.getItem("pepe_td_save");
+  if (!savedData) {
+    updateUI();
+    return; // Ja saglabāto datu nav, vienkārši sākam jaunu spēli
+  }
+
+  const gameState = JSON.parse(savedData);
+  money = gameState.money;
+  lives = gameState.lives;
+  currentLevel = gameState.currentLevel;
+
+  towers = [];
+  for (let savedTower of gameState.towers) {
+    let t = new Tower(savedTower.x, savedTower.y);
+    if (savedTower.lvl === 2) {
+      t.upgrade();
+    }
+    towers.push(t);
+  }
+  
+  updateUI();
+}
+
 // KOORDINĀTU PRECIZĒŠANAS FUNKCIJA (Svarīga telefoniem)
-// Pārrēķina pieskāriena vietu no ekrāna fiziskā izmēra uz spēles 800x600 pikseļiem
 function getCanvasTouchPos(e) {
   const rect = canvas.getBoundingClientRect();
-  // Ja tas ir skāriens (touch), ņemam pirmo pirkstu, ja nē — peli
   const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
   
@@ -94,7 +128,7 @@ class Enemy {
     this.maxHp = 25 + (level * 18);   
     this.hp = this.maxHp;
     this.waypointIndex = 0;
-    this.size = 36; // Lielāks tēls priekš 800x600 loga
+    this.size = 36; 
     this.hitTimer = 0; 
   }
 
@@ -140,7 +174,7 @@ class Tower {
     this.x = x;
     this.y = y;
     this.lvl = 1; 
-    this.range = 125; // Palielināts darbības rādiuss lielākai kartei
+    this.range = 125; 
     this.fireRate = 25; 
     this.cooldown = 0;
     this.size = 40; 
@@ -207,7 +241,6 @@ class Tower {
 // PASAULES ZĪMĒŠANA
 
 function drawMap() {
-  // Zāle
   ctx.fillStyle = "#1e3d23";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
@@ -217,7 +250,6 @@ function drawMap() {
     ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
   }
 
-  // Zemes ceļa apmale
   ctx.strokeStyle = "#4e3621";
   ctx.lineWidth = PATH_WIDTH + 6;
   ctx.lineCap = "round"; ctx.lineJoin = "round";
@@ -226,7 +258,6 @@ function drawMap() {
   for (let p of path) ctx.lineTo(p.x, p.y);
   ctx.stroke();
 
-  // Ceļš
   ctx.strokeStyle = "#ba9158";
   ctx.lineWidth = PATH_WIDTH;
   ctx.beginPath();
@@ -263,7 +294,6 @@ function handleMove(e) {
 }
 
 function handleInput(e) {
-  // Novērš lapas ritināšanu uz leju/raustīšanos, kad spēlē telefonā
   if (e.cancelable) e.preventDefault(); 
   
   const pos = getCanvasTouchPos(e);
@@ -277,9 +307,9 @@ function handleInput(e) {
     money -= 50;
     placingTower = false;
     updateUI();
+    saveGame(); // <--- SAGLABĀ, kad tiek uzbūvēts jauns tornis
   } else {
     let foundTower = null;
-    // Telefoniem palielināts uztveršanas rādiuss līdz 28, lai vieglāk uzspiest ar pirkstu
     for (let t of towers) {
       if (Math.sqrt(Math.pow(t.x - x, 2) + Math.pow(t.y - y, 2)) < 28) {
         foundTower = t;
@@ -296,7 +326,6 @@ function handleInput(e) {
   }
 }
 
-// Notikumu klausītāji abām platformām
 canvas.addEventListener("mousemove", handleMove);
 canvas.addEventListener("touchmove", handleMove, { passive: true });
 
@@ -310,7 +339,6 @@ const menu = document.getElementById("upgradeMenu");
 function openUpgradeMenu(e, x, y) {
   menu.style.display = "block";
   
-  // Izmantojam fiziskos CSS pikseļus loga pozicionēšanai, lai tas nedeformētos uz mazākiem ekrāniem
   const rect = canvas.getBoundingClientRect();
   const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
   const relativeX = clientX - rect.left;
@@ -334,7 +362,6 @@ function closeUpgradeMenu() {
   selectedTower = null;
 }
 
-// Pieslēdzam pogu darbības abiem režīmiem
 const closeEvents = ["click", "touchstart"];
 closeEvents.forEach(evt => {
   document.getElementById("closeBtn").addEventListener(evt, (e) => {
@@ -350,6 +377,7 @@ function triggerUpgrade(e) {
     selectedTower.upgrade();
     updateUI();
     closeUpgradeMenu();
+    saveGame(); // <--- SAGLABĀ, kad tornis tiek uzlabots
   }
 }
 document.getElementById("upgradeBtn").addEventListener("click", triggerUpgrade);
@@ -396,6 +424,7 @@ function gameLoop() {
     money += 60;     
     document.getElementById("nextLevel").disabled = false; 
     updateUI();
+    saveGame(); // <--- SAGLABĀ, kad pabeigts līmenis (saņemts bonuss)
   }
 
   for (let i = enemies.length - 1; i >= 0; i--) {
@@ -407,6 +436,8 @@ function gameLoop() {
       lives--;
       enemies.splice(i, 1);
       updateUI();
+      // Var izvēlēties saglabāt arī šeit, ja grib, lai zaudētās dzīvības fiksējas uzreiz:
+      if (lives > 0) saveGame(); 
     }
     else if (e.hp <= 0) {
       money += 12; 
@@ -448,9 +479,11 @@ function gameLoop() {
     ctx.font = "bold 45px 'Segoe UI'";
     ctx.textAlign = "center";
     ctx.fillText("SPĒLE BEIGUSIES!", canvas.width / 2, canvas.height / 2);
+    
+    localStorage.removeItem("pepe_td_save"); // <--- IZDZĒŠ DATUS, lai nevar ielādēt zaudētu spēli
   }
 }
 
-// Palaišana
-updateUI();
+// Ielāde un palaišana
+loadGame(); // <--- Nomainīts no updateUI() uz loadGame()
 gameLoop();
