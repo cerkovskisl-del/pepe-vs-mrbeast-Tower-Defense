@@ -2,39 +2,55 @@
 <html lang="lv">
 <head>
   <meta charset="UTF-8">
-  <title>Pepe vs MrBeast: Tower Defense</title>
+  <title>Pepe vs MrBeast: Ultimate Tower Defense</title>
   <style>
     body {
-      background-color: #1a1a1a;
+      background-color: #111;
       color: white;
-      font-family: 'Arial', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       margin: 0;
       height: 100vh;
-      position: relative;
+      overflow: hidden;
     }
 
     h1 {
-      margin-bottom: 10px;
+      margin: 0 0 5px 0;
+      font-size: 28px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #2ecc71;
+      text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
     }
 
     #UI {
       margin-bottom: 15px;
-      font-size: 20px;
+      font-size: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 8px 20px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
     }
+
+    #UI span {
+      font-weight: bold;
+      color: #f1c40f;
+    }
+    #UI #lives { color: #e74c3c; }
+    #UI #level { color: #3498db; }
 
     #canvasContainer {
       position: relative;
     }
 
     canvas {
-      background-color: #2b2b2b;
-      border: 4px solid #fff;
-      box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.5);
-      cursor: pointer;
+      border: 4px solid #444;
+      border-radius: 8px;
+      box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.7);
     }
 
     .controls {
@@ -44,42 +60,65 @@
     }
 
     button {
-      background-color: #4CAF50;
+      background: linear-gradient(135deg, #2ecc71, #27ae60);
       border: none;
       color: white;
-      padding: 10px 20px;
+      padding: 12px 24px;
       font-size: 16px;
+      font-weight: bold;
       cursor: pointer;
-      border-radius: 5px;
-      transition: 0.2s;
+      border-radius: 6px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      transition: all 0.2s ease;
+      text-transform: uppercase;
     }
 
-    button:hover {
-      background-color: #45a049;
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(46, 204, 113, 0.4);
     }
 
-    #nextLevel { background-color: #008CBA; }
-    #nextLevel:hover { background-color: #007B9A; }
-    button:active { transform: scale(0.95); }
+    #nextLevel {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+    }
+    #nextLevel:hover:not(:disabled) {
+      box-shadow: 0 6px 12px rgba(52, 152, 219, 0.4);
+    }
 
-    /* UPGRADE LOGA STILS */
+    button:disabled {
+      background: #444;
+      color: #777;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    /* UPGRADE IZVĒLNE */
     #upgradeMenu {
-      display: none; /* Sākumā paslēpts */
+      display: none;
       position: absolute;
-      background-color: rgba(0, 0, 0, 0.9);
+      background: rgba(20, 20, 20, 0.95);
       border: 2px solid #f1c40f;
       padding: 15px;
       border-radius: 8px;
       text-align: center;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
       z-index: 10;
+      backdrop-filter: blur(4px);
+      min-width: 160px;
     }
 
-    #upgradeMenu h4 { margin: 0 0 10px 0; color: #f1c40f; }
-    #upgradeBtn { background-color: #e67e22; margin-right: 5px; }
-    #upgradeBtn:hover { background-color: #d35400; }
-    #closeBtn { background-color: #95a5a6; }
-    #closeBtn:hover { background-color: #7f8c8d; }
+    #upgradeMenu h4 { margin: 0 0 8px 0; color: #f1c40f; text-transform: uppercase; font-size: 14px; }
+    #upgradeStats { margin: 0 0 12px 0; font-size: 13px; color: #bbb; }
+    
+    .menu-buttons { display: flex; gap: 8px; justify-content: center; }
+    #upgradeBtn { background: linear-gradient(135deg, #f39c12, #d35400); padding: 8px 14px; font-size: 14px; }
+    #closeBtn { background: #e74c3c; padding: 8px 12px; font-size: 14px; }
+    #closeBtn:hover { background: #c0392b; }
   </style>
 </head>
 <body>
@@ -95,16 +134,18 @@
     <canvas id="gameCanvas" width="600" height="400"></canvas>
     
     <div id="upgradeMenu">
-      <h4>Pepe Uzlabošana</h4>
-      <p id="upgradeStats">Damage: 10 -> 25</p>
-      <button id="upgradeBtn">Uzlabot ($75)</button>
-      <button id="closeBtn">X</button>
+      <h4>Pepe Upgrade</h4>
+      <p id="upgradeStats">Dmg: 10 -> 25</p>
+      <div class="menu-buttons">
+        <button id="upgradeBtn">Uzlabot ($75)</button>
+        <button id="closeBtn">X</button>
+      </div>
     </div>
   </div>
 
   <div class="controls">
-    <button id="buyPepe">Pirkt Pepe Torni ($50)</button>
-    <button id="nextLevel">Sākt nākamo līmeni</button>
+    <button id="buyPepe">Pirkt Pepe ($50)</button>
+    <button id="nextLevel">Sākt Vilni</button>
   </div>
 
   <script src="script.js"></script>
