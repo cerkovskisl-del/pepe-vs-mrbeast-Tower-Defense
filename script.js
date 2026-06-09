@@ -4,13 +4,14 @@ const ctx = canvas.getContext("2d");
 // IMAGE LOADING
 const pepeImg = new Image(); pepeImg.src = 'pepe.png';
 const pepeUpgradeImg = new Image(); pepeUpgradeImg.src = 'pepe_upgrade.png'; 
-const pepeDiamondImg = new Image(); pepeDiamondImg.src = 'pepe_diamond.png'; // NEW: Diamond asset
+const pepeDiamondImg = new Image(); pepeDiamondImg.src = 'pepe_diamond.png'; 
 const beastImg = new Image(); beastImg.src = 'mrbeast.png';
 
 // Main Game Variables
 let money = 120; 
 let lives = 10;
 let currentLevel = 1;
+let autoWaveActive = false; // NEW: Seko līdzi Auto-Wave statusam
 
 let towers = [];
 let enemies = [];
@@ -74,7 +75,7 @@ function loadGame() {
   for (let savedTower of gameState.towers) {
     let t = new Tower(savedTower.x, savedTower.y);
     if (savedTower.lvl === 2) t.upgrade();
-    if (savedTower.lvl === 3) { t.lvl = 2; t.upgrade(); t.upgradeToDiamond(); } // Handles diamond recovery from save
+    if (savedTower.lvl === 3) { t.lvl = 2; t.upgrade(); t.upgradeToDiamond(); } 
     towers.push(t);
   }
   updateUI();
@@ -155,7 +156,6 @@ class Enemy {
     this.hitTimer = 0;
     this.distanceTraveled = 0; 
 
-    // DIFFICULTY SCALING: Starting from wave 5, stats scale non-linearly
     let difficultyMultiplier = 1;
     let speedBonus = 0;
     if (level >= 5) {
@@ -175,7 +175,7 @@ class Enemy {
       this.size = 52;
       this.reward = 60; 
       this.hue = "hue-rotate(270deg) brightness(0.8)"; 
-    } else { // Normal MrBeast
+    } else { 
       this.speed = 1.3 + (level * 0.12) + speedBonus;
       this.maxHp = (25 + (level * 18)) * difficultyMultiplier;
       this.size = 36;
@@ -216,7 +216,6 @@ class Enemy {
     ctx.drawImage(beastImg, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
     ctx.restore();
 
-    // HP Bar
     let barW = this.size;
     ctx.fillStyle = "rgba(0,0,0,0.5)";
     ctx.fillRect(this.x - barW/2, this.y - this.size/2 - 8, barW, 5);
@@ -246,12 +245,11 @@ class Tower {
     this.range = 170;      
   }
 
-  // NEW: Diamond Upgrade Stats (Tier 3)
   upgradeToDiamond() {
     this.lvl = 3;
-    this.damage = 65;      // High endgame damage
-    this.fireRate = 7;     // Extremely fast speed
-    this.range = 220;      // Huge map radius
+    this.damage = 65;      
+    this.fireRate = 7;     
+    this.range = 220;      
   }
 
   update() {
@@ -260,7 +258,6 @@ class Tower {
     let target = null;
     let maxProgress = -1;
 
-    // SMART TARGETING
     for (let enemy of enemies) {
       let dist = Math.sqrt(Math.pow(enemy.x - this.x, 2) + Math.pow(enemy.y - this.y, 2));
       if (dist < this.range && enemy.distanceTraveled > maxProgress) {
@@ -273,10 +270,9 @@ class Tower {
       target.hp -= this.damage;
       target.hitTimer = 4; 
       
-      // Dynamic Laser Beam Colors
-      let beamColor = "#f1c40f"; // Level 1 (Yellow)
-      if (this.lvl === 2) beamColor = "#e67e22"; // Level 2 (Orange/Gold)
-      if (this.lvl === 3) beamColor = "#00d2d3"; // Level 3 (Cyan/Diamond)
+      let beamColor = "#f1c40f"; 
+      if (this.lvl === 2) beamColor = "#e67e22"; 
+      if (this.lvl === 3) beamColor = "#00d2d3"; 
 
       lasers.push({
         startX: this.x,
@@ -403,7 +399,7 @@ canvas.addEventListener("touchmove", handleMove, { passive: true });
 canvas.addEventListener("click", handleInput);
 canvas.addEventListener("touchstart", handleInput, { passive: false });
 
-// UPGRADE MENU TIER LOGIC
+// UPGRADE MENU LOGIC
 const menu = document.getElementById("upgradeMenu");
 
 function openUpgradeMenu(e, x, y) {
@@ -423,7 +419,6 @@ function openUpgradeMenu(e, x, y) {
     document.getElementById("upgradeBtn").disabled = false;
     menu.style.borderColor = "#f1c40f";
   } else if (selectedTower.lvl === 2) {
-    // NEW: Evolve interface option from Gold to Diamond
     document.getElementById("menuTitle").innerText = "Diamond Evolve";
     document.getElementById("upgradeStats").innerText = "Dmg: 26 ➔ 65 | Range: +50\nType: Diamond Pepe";
     document.getElementById("upgradeBtn").innerText = "Evolve ($150)";
@@ -454,7 +449,6 @@ closeEvents.forEach(evt => {
 function triggerUpgrade(e) {
   e.stopPropagation();
   if (selectedTower) {
-    // Level 1 -> Level 2 (Gold)
     if (selectedTower.lvl === 1 && money >= 75) {
       money -= 75;
       selectedTower.upgrade();
@@ -462,7 +456,6 @@ function triggerUpgrade(e) {
       closeUpgradeMenu();
       saveGame(); 
     } 
-    // NEW: Level 2 -> Level 3 (Diamond)
     else if (selectedTower.lvl === 2 && money >= 150) {
       money -= 150;
       selectedTower.upgradeToDiamond();
@@ -496,6 +489,28 @@ function nextLevelAction() {
 document.getElementById("nextLevel").addEventListener("click", nextLevelAction);
 document.getElementById("nextLevel").addEventListener("touchstart", nextLevelAction);
 
+// NEW: Auto Wave Pogas Loģika
+function toggleAutoWave(e) {
+  if (e) e.stopPropagation();
+  autoWaveActive = !autoWaveActive;
+  const btn = document.getElementById("autoWave");
+  
+  if (autoWaveActive) {
+    btn.innerText = "Auto Wave: ON";
+    btn.classList.add("active");
+    // Ja vilnis šobrīd nav aktīvs, palaižam uzreiz
+    if (!levelActive) {
+      nextLevelAction();
+    }
+  } else {
+    btn.innerText = "Auto Wave: OFF";
+    btn.classList.remove("active");
+  }
+}
+document.getElementById("autoWave").addEventListener("click", toggleAutoWave);
+document.getElementById("autoWave").addEventListener("touchstart", toggleAutoWave);
+
+
 // MAIN GAME LOOP
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -524,7 +539,7 @@ function gameLoop() {
     }
   }
 
-  // Wave Cleared Check
+  // Wave Cleared Check (Ar iestrādātu Auto-Wave pārbaudi)
   if (levelActive && enemiesToSpawn === 0 && enemies.length === 0) {
     levelActive = false;
     currentLevel++; 
@@ -532,6 +547,11 @@ function gameLoop() {
     document.getElementById("nextLevel").disabled = false; 
     updateUI();
     saveGame(); 
+
+    // MODIFIED: Ja autowave ir ieslēgts, uzreiz automātiski sākam nākamo vilni
+    if (autoWaveActive) {
+      nextLevelAction();
+    }
   }
 
   // Enemies Processing
@@ -563,7 +583,7 @@ function gameLoop() {
     t.draw();
   }
 
-  // Laser Effects (Endgame Cyan for Diamond tier)
+  // Laser Effects
   for (let i = lasers.length - 1; i >= 0; i--) {
     let l = lasers[i];
     ctx.strokeStyle = l.color;
