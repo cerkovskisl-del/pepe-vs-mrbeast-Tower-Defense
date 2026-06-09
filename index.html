@@ -105,6 +105,16 @@
       box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
     }
 
+    /* Jaunais stils Auto Wave pogai */
+    #autoWave {
+      background: linear-gradient(135deg, #7f8c8d 0%, #95a5a6 100%);
+      box-shadow: 0 5px 15px rgba(149, 165, 166, 0.3);
+    }
+    #autoWave.active {
+      background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+      box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
+    }
+
     button:disabled {
       background: #333 !important;
       color: #666 !important;
@@ -138,8 +148,6 @@
     }
 
     #upgradeMenu h4 { margin: 0 0 6px 0; color: #f1c40f; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; }
-    
-    /* Pievienots white-space, lai jaunie Diamond teksti glīti pārnestos rindās */
     #upgradeStats { margin: 0 0 12px 0; font-size: 12px; color: #ccc; font-weight: 500; min-height: 34px; white-space: pre-line; }
     
     .menu-buttons { display: flex; gap: 10px; justify-content: center; }
@@ -173,6 +181,7 @@
   <div class="controls">
     <button id="buyPepe">Buy Pepe ($50)</button>
     <button id="nextLevel">Start Wave</button>
+    <button id="autoWave">Auto Wave: OFF</button>
   </div>
 
   <script src="script.js"></script>
