@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Pepe vs MrBeast: Mobile Edition</title>
+  <title>Pepe vs MrBeast: Ultimate Edition</title>
   <style>
     * {
       box-sizing: border-box;
-      -webkit-touch-callout: none; /* Noņem teksta izvēli telefonā */
+      -webkit-touch-callout: none;
       -webkit-user-select: none;
       user-select: none;
     }
 
     body {
-      background-color: #111;
+      background: radial-gradient(circle, #1a1a1a 0%, #0a0a0a 100%);
       color: white;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -27,115 +27,133 @@
     }
 
     h1 {
-      margin: 0 0 5px 0;
-      font-size: 22px;
+      margin: 0 0 10px 0;
+      font-size: 26px;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 2px;
-      color: #2ecc71;
-      text-align: center;
+      letter-spacing: 3px;
+      background: linear-gradient(45deg, #2ecc71, #1abc9c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0px 4px 10px rgba(46, 204, 113, 0.2);
     }
 
     #UI {
-      margin-bottom: 10px;
-      font-size: 15px;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 6px 15px;
-      border-radius: 20px;
+      margin-bottom: 15px;
+      font-size: 16px;
+      background: rgba(20, 20, 20, 0.8);
+      padding: 10px 25px;
+      border-radius: 30px;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      display: flex;
+      gap: 20px;
+      justify-content: center;
       width: 100%;
-      max-width: 400px;
+      max-width: 500px;
+      backdrop-filter: blur(10px);
     }
 
-    #UI span { font-weight: bold; color: #f1c40f; }
-    #UI #lives { color: #e74c3c; }
-    #UI #level { color: #3498db; }
+    .ui-stat { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+    #money { color: #f1c40f; text-shadow: 0 0 10px rgba(241, 196, 15, 0.3); }
+    #lives { color: #e74c3c; text-shadow: 0 0 10px rgba(231, 76, 60, 0.3); }
+    #level { color: #3498db; text-shadow: 0 0 10px rgba(52, 152, 219, 0.3); }
 
     #canvasContainer {
       position: relative;
       width: 100%;
-      max-width: 800px; /* Maksimālais izmērs kā datorā */
+      max-width: 800px;
     }
 
     canvas {
-      background-color: #2b2b2b;
-      border: 3px solid #444;
-      border-radius: 8px;
-      box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.7);
+      background-color: #1e3d23;
+      border: 4px solid #2c3e50;
+      border-radius: 12px;
+      box-shadow: 0px 15px 35px rgba(0, 0, 0, 0.8);
       display: block;
-      width: 100%; /* Svarīgi: Telefonā izstiepsies/samazināsies pa visu ekrānu */
-      height: auto; /* Saglabā 800x600 proporciju */
-      touch-action: none; /* Neļauj telefonam ritināt lapu, kad aiztiek spēli */
+      width: 100%;
+      height: auto;
+      touch-action: none;
     }
 
     .controls {
-      margin-top: 10px;
+      margin-top: 15px;
       display: flex;
-      gap: 10px;
+      gap: 15px;
       width: 100%;
       max-width: 800px;
     }
 
     button {
       flex: 1;
-      background: linear-gradient(135deg, #2ecc71, #27ae60);
+      background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
       border: none;
       color: white;
-      padding: 15px 10px; /* Lielākas pogas ērtākam klikšķim telefonā */
-      font-size: 15px;
-      font-weight: bold;
+      padding: 16px 20px;
+      font-size: 16px;
+      font-weight: 700;
       cursor: pointer;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-      transition: transform 0.1s;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+      transition: all 0.2s ease;
       text-transform: uppercase;
-      text-align: center;
+      letter-spacing: 1px;
     }
 
     #nextLevel {
-      background: linear-gradient(135deg, #3498db, #2980b9);
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
     }
 
     button:disabled {
-      background: #444;
-      color: #777;
-      box-shadow: none;
+      background: #333 !important;
+      color: #666 !important;
+      box-shadow: none !important;
+      cursor: not-allowed;
     }
 
-    button:active {
-      transform: scale(0.95);
+    button:active:not(:disabled) {
+      transform: scale(0.96);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
     }
 
-    /* MOBILAIS UPGRADE LOGS */
+    /* MODERNAIS UZLABOJUMU LOGS */
     #upgradeMenu {
       display: none;
       position: absolute;
-      background: rgba(20, 20, 20, 0.95);
+      background: rgba(15, 15, 15, 0.95);
       border: 2px solid #f1c40f;
-      padding: 12px;
-      border-radius: 8px;
+      padding: 15px;
+      border-radius: 12px;
       text-align: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px rgba(241, 196, 15, 0.2);
       z-index: 10;
-      backdrop-filter: blur(4px);
-      min-width: 150px;
+      backdrop-filter: blur(5px);
+      min-width: 180px;
+      animation: popIn 0.15s ease-out;
     }
 
-    #upgradeMenu h4 { margin: 0 0 5px 0; color: #f1c40f; text-transform: uppercase; font-size: 13px; }
-    #upgradeStats { margin: 0 0 10px 0; font-size: 12px; color: #bbb; }
+    @keyframes popIn {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    #upgradeMenu h4 { margin: 0 0 6px 0; color: #f1c40f; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; }
+    #upgradeStats { margin: 0 0 12px 0; font-size: 12px; color: #ccc; font-weight: 500; }
     
-    .menu-buttons { display: flex; gap: 8px; justify-content: center; }
-    #upgradeBtn { background: linear-gradient(135deg, #f39c12, #d35400); padding: 10px 12px; font-size: 13px; }
-    #closeBtn { background: #e74c3c; padding: 10px 14px; font-size: 13px; max-width: 45px; }
+    .menu-buttons { display: flex; gap: 10px; justify-content: center; }
+    #upgradeBtn { background: linear-gradient(135deg, #f39c12 0%, #d35400 100%); box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3); padding: 10px 15px; font-size: 13px; }
+    #closeBtn { background: #e74c3c; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3); padding: 10px 15px; font-size: 13px; max-width: 45px; }
   </style>
 </head>
 <body>
 
   <h1>Pepe vs MrBeast: TD</h1>
+  
   <div id="UI">
-    Lvl: <span id="level">1</span> | 
-    Nauda: $<span id="money">120</span> | 
-    Dzīvības: <span id="lives">10</span>
+    <div class="ui-stat">Lvl: <span id="level">1</span></div>
+    <div class="ui-stat">Nauda: $<span id="money">120</span></div>
+    <div class="ui-stat">Dzīvības: <span id="lives">10</span></div>
   </div>
   
   <div id="canvasContainer">
@@ -153,7 +171,7 @@
 
   <div class="controls">
     <button id="buyPepe">Pirkt Pepe ($50)</button>
-    <button id="nextLevel">Sākt</button>
+    <button id="nextLevel">Sākt Vilni</button>
   </div>
 
   <script src="script.js"></script>
